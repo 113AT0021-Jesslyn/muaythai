@@ -1,10 +1,7 @@
-// Buttons (6 buttons total)
-const int b2 = 2;
-const int b3 = 3;
-const int b4 = 4;
-const int b5 = 5;
-const int b6 = 6;
-const int b7 = 7;
+// Button pairs
+const int b2 = 2, b3 = 3;   // BLUE
+const int b4 = 4, b5 = 5;   // RED
+const int b6 = 6, b7 = 7;   // GREEN
 
 // RGB LED pins
 const int rPin = 10;
@@ -15,17 +12,13 @@ const int bPin = 12;
 bool lastBlue = false;
 bool lastRed = false;
 bool lastGreen = false;
-bool lastYellow = false;
+bool lastAnj = false;
 
 unsigned long lastDebounceBlue = 0;
 unsigned long lastDebounceRed = 0;
 unsigned long lastDebounceGreen = 0;
-unsigned long lastDebounceYellow = 0;
+unsigned long lastDebounceAnj = 0;
 const unsigned long debounceDelay = 50;
-
-// Timer
-unsigned long lastColorChangeTime = 0;
-const unsigned long colorInterval = 5000;
 
 // Current target color
 String targetColor;
@@ -33,107 +26,108 @@ String targetColor;
 void setup() {
   Serial.begin(9600);
 
-  pinMode(b2, INPUT_PULLUP);
+  pinMode(b7, INPUT_PULLUP);
   pinMode(b3, INPUT_PULLUP);
   pinMode(b4, INPUT_PULLUP);
   pinMode(b5, INPUT_PULLUP);
+  pinMode(b2, INPUT_PULLUP);
   pinMode(b6, INPUT_PULLUP);
-  pinMode(b7, INPUT_PULLUP);
 
   pinMode(rPin, OUTPUT);
   pinMode(gPin, OUTPUT);
   pinMode(bPin, OUTPUT);
 
   randomSeed(analogRead(0));
-  pickRandomColor();
-  lastColorChangeTime = millis();
+  pickRandomColor(); // Pick first color
 }
 
 void loop() {
   unsigned long currentMillis = millis();
 
-  // ⏱ Auto change every 5 seconds
-  if (currentMillis - lastColorChangeTime >= colorInterval) {
-    pickRandomColor();
-    lastColorChangeTime = currentMillis;
-  }
-
-  // BLUE = (b2, b6)
+  // BLUE combo
   bool blueCombo = (!digitalRead(b2) && !digitalRead(b6));
-  if (blueCombo && !lastBlue && currentMillis - lastDebounceBlue > debounceDelay) {
+  if(blueCombo && !lastBlue && (currentMillis - lastDebounceBlue > debounceDelay)) {
     checkColor("BLUE");
     lastDebounceBlue = currentMillis;
   }
   lastBlue = blueCombo;
 
-  // RED = (b4, b6)
-  bool redCombo = (!digitalRead(b4) && !digitalRead(b6));
-  if (redCombo && !lastRed && currentMillis - lastDebounceRed > debounceDelay) {
+  // RED combo
+  bool redCombo = (!digitalRead(b3) && !digitalRead(b7));
+  if(redCombo && !lastRed && (currentMillis - lastDebounceRed > debounceDelay)) {
     checkColor("RED");
     lastDebounceRed = currentMillis;
   }
   lastRed = redCombo;
 
-  // GREEN = (b3, b7)
-  bool greenCombo = (!digitalRead(b3) && !digitalRead(b7));
-  if (greenCombo && !lastGreen && currentMillis - lastDebounceGreen > debounceDelay) {
+  // GREEN combo
+  bool greenCombo = (!digitalRead(b4) && !digitalRead(b6));
+  if(greenCombo && !lastGreen && (currentMillis - lastDebounceGreen > debounceDelay)) {
     checkColor("GREEN");
     lastDebounceGreen = currentMillis;
   }
   lastGreen = greenCombo;
 
-  // YELLOW = (b5, b7)
-  bool yellowCombo = (!digitalRead(b5) && !digitalRead(b7));
-  if (yellowCombo && !lastYellow && currentMillis - lastDebounceYellow > debounceDelay) {
+  // ANJ combo (YELLOW)
+  bool anjCombo = (!digitalRead(b5) && !digitalRead(b7));
+  if(anjCombo && !lastAnj && (currentMillis - lastDebounceAnj > debounceDelay)) {
     checkColor("YELLOW");
-    lastDebounceYellow = currentMillis;
+    lastDebounceAnj = currentMillis;
   }
-  lastYellow = yellowCombo;
+  lastAnj = anjCombo;
 }
 
-// Pick random color
+// Pick a random color from RED, GREEN, BLUE, YELLOW
 void pickRandomColor() {
   int r = random(0, 4);
-  switch (r) {
+  switch(r) {
     case 0: targetColor = "RED"; break;
     case 1: targetColor = "GREEN"; break;
     case 2: targetColor = "BLUE"; break;
     case 3: targetColor = "YELLOW"; break;
   }
-
   Serial.print("Target color: ");
   Serial.println(targetColor);
   showColor(targetColor);
 }
 
-// Show RGB color
+// Turn on/off RGB LED using digital pins
 void showColor(String color) {
-  digitalWrite(rPin, HIGH);
-  digitalWrite(gPin, HIGH);
-  digitalWrite(bPin, HIGH);
+  // Turn all off first
+  digitalWrite(rPin, LOW);
+  digitalWrite(gPin, LOW);
+  digitalWrite(bPin, LOW);
 
   if (color == "RED") {
     digitalWrite(rPin, LOW);
-  } else if (color == "GREEN") {
+    digitalWrite(gPin, HIGH);
+    digitalWrite(bPin, HIGH);
+  } 
+  else if (color == "GREEN") {
+    digitalWrite(rPin, HIGH);
     digitalWrite(gPin, LOW);
-  } else if (color == "BLUE") {
+    digitalWrite(bPin, HIGH);
+  } 
+  else if (color == "BLUE") {
+    digitalWrite(rPin, HIGH);
+    digitalWrite(gPin, HIGH);
     digitalWrite(bPin, LOW);
-  } else if (color == "YELLOW") {
+  } 
+  else if (color == "YELLOW") { // RED + GREEN
     digitalWrite(rPin, LOW);
     digitalWrite(gPin, LOW);
+    digitalWrite(bPin, HIGH);
   }
 }
 
-// Check result
+// Check if pressed combo matches the target color
 void checkColor(String pressedColor) {
-  if (pressedColor == targetColor) {
-    Serial.print("Correct: ");
+  if(pressedColor == targetColor) {
+    Serial.print("Correct! You pressed: ");
     Serial.println(pressedColor);
-
-    pickRandomColor();
-    lastColorChangeTime = millis();
+    pickRandomColor(); // Next round
   } else {
-    Serial.print("Wrong: ");
+    Serial.print("Wrong! You pressed: ");
     Serial.println(pressedColor);
   }
 }
